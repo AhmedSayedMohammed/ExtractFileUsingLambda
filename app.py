@@ -6,7 +6,8 @@ payload = b'{"destination": "zipped","source": "zipped","file": "zippedfile.zip"
 
 
 def extract_file():
-    session = boto3.Session(profile_name='s3access')
+    session = boto3.Session(aws_access_key_id='AKIA5DOUENKLNCAAZLMM',
+                            aws_secret_access_key='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', region_name='us-east-2')
     dev_client = session.client('lambda')
 
     response = dev_client.invoke(
