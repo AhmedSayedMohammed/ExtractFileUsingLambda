@@ -1,0 +1,162 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The template used to create an ECS Service from the ECS Console.",
+  "Parameters": {
+    "ECSClusterName": {
+      "Type": "String",
+      "Default": "FargatAlmentorCluster"
+    },
+    "SecurityGroupIDs": {
+      "Type": "String",
+      "Default": "sg-07ca4a73df754f3a1"
+    },
+    "SubnetIDs": {
+      "Type": "CommaDelimitedList",
+      "Default": "subnet-086909a380d3fbfa7,subnet-0aeda3246edab35c2,subnet-05c0dd23967757013"
+    },
+    "VpcID": {
+      "Type": "String",
+      "Default": "vpc-0db83f5bebf323c06"
+    },
+    "LoadBalancerType": {
+      "Type": "String",
+      "Default": "application",
+      "AllowedValues": [
+        "application",
+        "network"
+      ],
+      "ConstraintDescription": "must specify an application or network load balancer type."
+    },
+    "LoadBalancerName": {
+      "Type": "String",
+      "Default": "FargateLoadBalancerAlmentor"
+    }
+  },
+  "Resources": {
+    "ECSService": {
+      "Type": "AWS::ECS::Service",
+      "Properties": {
+        "Cluster": "FargatAlmentorCluster",
+        "CapacityProviderStrategy": [
+          {
+            "CapacityProvider": "FARGATE",
+            "Base": 0,
+            "Weight": 1
+          }
+        ],
+        "TaskDefinition": "arn:aws:ecs:us-east-2:900777405078:task-definition/FargateAlmentorTD:1",
+        "ServiceName": "FragateAlmentorService",
+        "DesiredCount": 1,
+        "LoadBalancers": [
+          {
+            "ContainerName": "fargateImageAlmentor",
+            "ContainerPort": 8080,
+            "LoadBalancerName": {
+              "Ref": "AWS::NoValue"
+            },
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            }
+          }
+        ],
+        "NetworkConfiguration": {
+          "AwsvpcConfiguration": {
+            "AssignPublicIp": "ENABLED",
+            "SecurityGroups": [
+              {
+                "Ref": "SecurityGroupIDs"
+              }
+            ],
+            "Subnets": {
+              "Ref": "SubnetIDs"
+            }
+          }
+        },
+        "PlatformVersion": "LATEST",
+        "DeploymentConfiguration": {
+          "MaximumPercent": 200,
+          "MinimumHealthyPercent": 100
+        },
+        "DeploymentController": {
+          "Type": "ECS"
+        }
+      },
+      "DependsOn": "Listener"
+    },
+    "LoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Name": "FargateLoadBalancerAlmentor",
+        "SecurityGroups": [
+          "sg-07ca4a73df754f3a1"
+        ],
+        "Subnets": [
+          "subnet-086909a380d3fbfa7",
+          "subnet-0aeda3246edab35c2",
+          "subnet-05c0dd23967757013"
+        ],
+        "Type": "application"
+      }
+    },
+    "TargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "Name": "FargateTargetGroupALmentor",
+        "VpcId": "vpc-0db83f5bebf323c06",
+        "Protocol": "HTTP",
+        "Port": "8080",
+        "TargetType": "ip"
+      }
+    },
+    "Listener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "Properties": {
+        "DefaultActions": [
+          {
+            "TargetGroupArn": {
+              "Ref": "TargetGroup"
+            },
+            "Type": "forward"
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "LoadBalancer"
+        },
+        "Port": "8080",
+        "Protocol": "HTTP"
+      }
+    }
+  },
+  "Outputs": {
+    "ClusterName": {
+      "Description": "The cluster used to create the service.",
+      "Value": {
+        "Ref": "ECSClusterName"
+      }
+    },
+    "ECSService": {
+      "Description": "The created service.",
+      "Value": {
+        "Ref": "ECSService"
+      }
+    },
+    "LoadBalancer": {
+      "Description": "The created load balancer.",
+      "Value": {
+        "Ref": "LoadBalancer"
+      }
+    },
+    "Listener": {
+      "Description": "The created listener.",
+      "Value": {
+        "Ref": "Listener"
+      }
+    },
+    "TargetGroup": {
+      "Description": "The created target group.",
+      "Value": {
+        "Ref": "TargetGroup"
+      }
+    }
+  }
+}
